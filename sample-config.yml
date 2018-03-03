@@ -1,0 +1,27 @@
+stateFile:      "/var/run/otto_state.json"
+pidFile:        "/var/run/otto.pid"
+slackWebHook:   "https://hooks.slack.com/services/..."
+nrLicense:      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+nrAppName:	"Otto (prod)"
+router:
+  ipPollSeconds:    30
+  ipPollSecondsErr: 300
+  hostname:         "router.example.com"
+  username:         "otto"
+  sshKeyFile:       "this_should_really_be_in_vault_or_something"
+  pubInterface:     "ge-0/0/0.0"
+snmp:
+  port:         161
+  timeoutSecs:  10
+  version:      "3"
+  v3usm:
+    username:       "public"
+    authType:       "SHA"
+    authPass:       "publicXX"
+    privType:       "AES"
+    privPass:       "publicXX"
+    securityLevel:  "authPriv"
+tunnelbroker:
+  username:     ""
+  password:     ""
+  tunnelId:     ""
