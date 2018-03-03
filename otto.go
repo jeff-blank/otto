@@ -182,16 +182,16 @@ func getLastState(stateFile string) State {
 func writeState(stateFile string, state State) {
 	jsonState, err := json.MarshalIndent(state, "", "  ")
 	if err != nil {
-		errMsg := fmt.Sprintf("Can't marshal current state to JSON: %v\n", err)
+		errMsg := fmt.Sprintf("Can't marshal current state to JSON: %v", err)
 		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
-		log.Printf(errMsg)
+		log.Print(errMsg)
 		return
 	}
 	err = ioutil.WriteFile(stateFile, jsonState, 0600)
 	if err != nil {
-		errMsg := fmt.Sprintf("Error writing state to %s: %v\n", stateFile, err)
+		errMsg := fmt.Sprintf("Error writing state to %s: %v", stateFile, err)
 		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
-		log.Printf(errMsg)
+		log.Print(errMsg)
 	}
 }
 
