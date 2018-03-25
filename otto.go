@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"golang.org/x/crypto/ssh"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,6 +17,7 @@ import (
 
 	nc "github.com/Juniper/go-netconf/netconf"
 	nrgo "github.com/newrelic/go-agent"
+	log "github.com/sirupsen/logrus"
 	snmp "github.com/soniah/gosnmp"
 	"gopkg.in/yaml.v2"
 )
@@ -409,9 +409,14 @@ func main() {
 	var err error
 
 	configFile := flag.String("conf", "/usr/local/etc/otto.yml", "configuration file (YAML)")
+	verbose := flag.Bool("v", true, "Increase verbosity")
 	flag.Parse()
 
 	config := readConfigFile(*configFile)
+
+	if *verbose {
+		log.SetLevel(log.DebugLevel)
+	}
 
 	globalRegex = make(map[string]*re.Regexp)
 	globalRegex["rfc1918"], err = re.Compile(`^1(0|72\.(1[6-9]|2[0-9]|3[01])|92\.168)\.`)
