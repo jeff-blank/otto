@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"golang.org/x/crypto/ssh"
@@ -19,6 +20,7 @@ import (
 	nrgo "github.com/newrelic/go-agent"
 	log "github.com/sirupsen/logrus"
 	snmp "github.com/soniah/gosnmp"
+	tunnelbroker "github.com/xaque208/go-tunnelbroker"
 	"gopkg.in/yaml.v2"
 )
 
@@ -28,7 +30,7 @@ const (
 	ipAdEntIfIndex = ".1.3.6.1.2.1.4.20.1.2"
 )
 
-var LOGLEVEL = map[string]string{
+var SLACK_LOGLEVEL = map[string]string{
 	"Fatal":   "#000000",
 	"Error":   "#ff0000",
 	"Warning": "#ffa500",
@@ -47,6 +49,12 @@ type LogEnt struct {
 	Level   string
 }
 
+type TunnelBroker struct {
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	TunnelId int    `yaml:"tunnelId"`
+}
+
 type SNMPConfig struct {
 	Port           uint16            `yaml:"port"`
 	Timeout        int               `yaml:"timeoutSecs"`
@@ -62,7 +70,7 @@ type Config struct {
 	PidFile      string            `yaml:"pidFile"`
 	Router       map[string]string `yaml:"router"`
 	SNMP         SNMPConfig        `yaml:"snmp"`
-	TunnelBroker map[string]string `yaml:"tunnelbroker"`
+	TunnelBroker TunnelBroker      `yaml:"tunnelbroker"`
 	SlackWebHook string            `yaml:"slackWebHook"`
 }
 
@@ -100,7 +108,43 @@ func SNMPSess(config Config) *snmp.GoSNMP {
 	return snmpCfg
 }
 
-func getPubIP(config Config, sess *snmp.GoSNMP) string {
+func getTunnelNearIP(config Config) (string, error) {
+
+	tx := nrApp.StartTransaction("getTunnelNearIP", nil, nil)
+	defer tx.End()
+
+	seg := nrgo.StartSegment(tx, "getTunnelNearIP")
+	t := tunnelbroker.Client{
+		Username: config.TunnelBroker.Username,
+		Password: config.TunnelBroker.Password,
+	}
+
+	tunnels, err := t.TunnelInfo()
+	seg.End()
+	if err != nil {
+		log.Debug(err)
+	}
+
+	tunnelIds := make([]int, len(tunnels.Tunnels))
+	for _, tun := range tunnels.Tunnels {
+		if tun.Id != 0 {
+			tunnelIds = append(tunnelIds, tun.Id)
+		}
+
+		if tun.Id == config.TunnelBroker.TunnelId {
+			return tun.ClientV4, nil
+		}
+	}
+
+	err = errors.New(fmt.Sprintf("No tunnel matching id %d was found.  Found: %+v", config.TunnelBroker.TunnelId, tunnelIds))
+	log.Error(err)
+
+	return "", err
+}
+
+func getPubIP(config Config, sess *snmp.GoSNMP) (string, error) {
+	log.Debugf("Retrieving public IP from device '%s'", config.Router["hostname"])
+
 	pollSecondsErr, _ := sc.Atoi(config.Router["ipPollSecondsErr"])
 	pubIfIndex := -1
 
@@ -117,7 +161,7 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 		printAddLogEnt(fmt.Sprintf("BulkWalkAll %s ifDescr: %v", config.Router["hostname"], err), "Error", config.SlackWebHook)
 		if pollSecondsErr > 0 {
 			time.Sleep(time.Duration(pollSecondsErr) * time.Second)
-			return ""
+			return "", nil
 		}
 	}
 
@@ -131,7 +175,7 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 					printAddLogEnt(fmt.Sprintf("%s: no dots in OID '%s'", config.Router["hostname"], pdu.Name), "Error", config.SlackWebHook)
 					if pollSecondsErr > 0 {
 						time.Sleep(time.Duration(pollSecondsErr) * time.Second)
-						return ""
+						return "", nil
 					}
 				}
 				pubIfIndex, err = sc.Atoi(pdu.Name[lastDot+1:])
@@ -158,12 +202,14 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 	for _, pdu := range res {
 		if pdu.Type == snmp.Integer && pdu.Value.(int) == pubIfIndex {
 			seg.End()
-			return pdu.Name[len(ipAdEntIfIndex)+1:]
+			return pdu.Name[len(ipAdEntIfIndex)+1:], nil
 		}
 	}
 
 	seg.End()
-	return "N/A"
+	err = errors.New(fmt.Sprintf("No public address foudn on interface %s", config.Router["pubInterface"]))
+	log.Error(err)
+	return "N/A", err
 }
 
 func getLastState(stateFile string) State {
@@ -220,14 +266,18 @@ func ncClient(router map[string]string) *nc.Session {
 	return sess
 }
 
-func tunnelBrokerUpdate(tbConfig map[string]string, slackWebHook string) {
+func tunnelBrokerUpdate(tbConfig TunnelBroker, ipAddress, slackWebHook string) {
 	tx := nrApp.StartTransaction("tunnelBrokerUpdate", nil, nil)
 	defer tx.End()
 
-	seg := nrgo.StartSegment(tx, "HTTP GET to update")
-	resp, err := http.Get(fmt.Sprintf("https://%s:%s@ipv4.tunnelbroker.net/nic/update?hostname=%s", tbConfig["username"], tbConfig["password"], tbConfig["tunnelId"]))
+	seg := nrgo.StartSegment(tx, "tunnelBroker Client")
+	t := tunnelbroker.Client{
+		Username: tbConfig.Username,
+		Password: tbConfig.Password,
+	}
+
+	err := t.UpdateTunnel(tbConfig.TunnelId, ipAddress)
 	seg.End()
-	defer resp.Body.Close()
 
 	// config.LogActions
 	if err == nil {
@@ -338,7 +388,7 @@ func logSlack(webHookURL string) {
 	slackPayload := `{"attachments":`
 	slackPayloadFmt := `[{"fallback":"New Changes/Errors","color":"%s","pretext":"New Changes/Errors","fields":[{"title":"%s","value":"%s","short":false}]}],`
 	for _, logEnt := range logBuf {
-		slackPayload += fmt.Sprintf(slackPayloadFmt, LOGLEVEL[logEnt.Level], logEnt.Level, logEnt.Message)
+		slackPayload += fmt.Sprintf(slackPayloadFmt, SLACK_LOGLEVEL[logEnt.Level], logEnt.Level, logEnt.Message)
 	}
 	slackPayload += "}"
 	//log.Print(slackPayload)
@@ -466,17 +516,36 @@ func main() {
 
 	go func() {
 		for {
-			pubIP := getPubIP(config, snmpsess)
-			if pubIP != "N/A" && len(globalRegex["rfc1918"].Find([]byte(pubIP))) == 0 && state.PubIP != pubIP {
-				log.Printf("pub IP now '%s'", pubIP)
+			pubIP, err := getPubIP(config, snmpsess)
+			if err != nil {
+				log.Error(err)
+				<-pollTicker.C
+				continue
+			}
+			log.Debugf("Current public interface v4: %s", pubIP)
+
+			tunnelNearIP, err := getTunnelNearIP(config)
+			if err != nil {
+				log.Error(err)
+				<-pollTicker.C
+				continue
+			}
+
+			log.Debugf("Current tunnel client v4: %s", tunnelNearIP)
+
+			if pubIP != tunnelNearIP {
+				log.Infof("pub IP now '%s'", pubIP)
 				success := routerPubIPUpdate(config.Router, pubIP, config.SlackWebHook)
-				tunnelBrokerUpdate(config.TunnelBroker, config.SlackWebHook)
+				tunnelBrokerUpdate(config.TunnelBroker, pubIP, config.SlackWebHook)
 				if success {
 					printAddLogEnt(fmt.Sprintf("Public IP updated from %s to %s", state.PubIP, pubIP), "Info", config.SlackWebHook)
 					state.PubIP = pubIP
 					writeState(config.StateFile, state)
 				}
+			} else {
+				log.Debug("No configuration update required")
 			}
+
 			if len(logBuf) > 0 {
 				logSlack(config.SlackWebHook)
 			}
