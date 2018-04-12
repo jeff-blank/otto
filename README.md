@@ -1,7 +1,7 @@
 # otto
 
 
-### Junos v3 example
+### Junos SNMP v3 configuration example
 
     set snmp v3 usm local-engine user public authentication-sha authentication-key "$9..."
     set snmp v3 usm local-engine user public privacy-aes128 privacy-key "$9..."
