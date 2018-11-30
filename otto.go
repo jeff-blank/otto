@@ -335,6 +335,8 @@ func routerPubIPUpdate(router map[string]string, newIP, slackWebHook string) boo
 }
 
 func logSlack(webHookURL string) {
+	tx := nrApp.StartTransaction("logSlack", nil, nil)
+	defer tx.End()
 	slackPayload := `{"attachments":`
 	slackPayloadFmt := `[{"fallback":"New Changes/Errors","color":"%s","pretext":"New Changes/Errors","fields":[{"title":"%s","value":"%s","short":false}]}],`
 	for _, logEnt := range logBuf {
@@ -342,7 +344,9 @@ func logSlack(webHookURL string) {
 	}
 	slackPayload += "}"
 	//log.Print(slackPayload)
+	seg := nrgo.StartSegment(tx, "Slack HTTP POST")
 	resp, _ := http.PostForm(webHookURL, url.Values{"payload": []string{slackPayload}})
+	seg.End()
 	defer resp.Body.Close()
 	logBuf = make([]LogEnt, 0)
 }
