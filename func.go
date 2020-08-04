@@ -15,7 +15,6 @@ import (
 	nc "github.com/Juniper/go-netconf/netconf"
 	nrgo "github.com/newrelic/go-agent/v3/newrelic"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 func getLastState(stateFile string) State {
@@ -113,22 +112,6 @@ func jSetConfig(target, updateXML string) string {
 	updateXML = globalRegex["reNewline"].ReplaceAllString(updateXML, "\n")
 
 	return "<edit-config><default-operation>merge</default-operation><target><" + target + "/></target>" + updateXML + "</edit-config>"
-}
-
-func readConfigFile(path string) Config {
-	var config Config
-	yamlText, err := ioutil.ReadFile(path)
-	if err != nil {
-		log.Fatalf("Can't read %s: %v", path, err)
-	}
-	err = yaml.Unmarshal(yamlText, &config)
-	if err != nil {
-		log.Fatalf("Can't unmarshal YAML from %s: %v", path, err)
-	}
-
-	// TODO: param validation
-
-	return config
 }
 
 func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
