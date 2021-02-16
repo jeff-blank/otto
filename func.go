@@ -35,14 +35,14 @@ func writeState(stateFile string, state State) {
 	if err != nil {
 		errMsg := fmt.Sprintf("Can't marshal current state to JSON: %v", err)
 		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
-		log.Print(errMsg)
+		log.Error(errMsg)
 		return
 	}
 	err = ioutil.WriteFile(stateFile, jsonState, 0600)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error writing state to %s: %v", stateFile, err)
 		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
-		log.Print(errMsg)
+		log.Error(errMsg)
 	}
 }
 
@@ -171,7 +171,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 	if err != nil {
 		printAddLogEnt(fmt.Sprintf("NetConf exec(edit-config) failed: %v", err), "Error", slackWebHook)
-		log.Print(jSetConfig("candidate", updateXML))
+		log.Error(jSetConfig("candidate", updateXML))
 		_, err = ncSess.Exec(nc.MethodUnlock("candidate"))
 		if err != nil {
 			printAddLogEnt(fmt.Sprintf("NetConf exec(unlock) failed: %v", err), "Error", slackWebHook)

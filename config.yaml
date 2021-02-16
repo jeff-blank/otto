@@ -1,0 +1,28 @@
+state_file:     "/var/lib/otto/state.json"
+pid_file:       "/var/run/otto.pid"
+slack_web_hook: "%%SLACK_WEBHOOK%%"
+nr_license:     "%%NR_LICENSE%%"
+nr_app_name:    "Otto (Prod)"
+router:
+  ip_poll_seconds:     30
+  ip_poll_seconds_err: 300
+  hostname:            "%%ROUTER_HOSTNAME%%"
+  username:            "%%ROUTER_USERNAME%%"
+  ssh_key_file:        "/id_ed25519"
+  pub_interface:       "pp0.0"
+snmp:
+  port:         161
+  timeout_secs: 10
+  version:      "3"
+  v3_usm:
+    username:       "%%SNMPV3_USER%%"
+    auth_type:      "SHA"
+    auth_pass:      "%%SNMPV3_AUTH_PASS%%"
+    priv_type:      "AES"
+    priv_pass:      "%%SNMPV3_PRIV_PASS%%"
+    security_level: "authPriv"
+tunnelbroker:
+  username:   "%%TUNNEL_USER%%"
+  password:   "%%TUNNEL_PASS%%"
+  tunnel_id:  "%%TUNNEL_ID%%"
+  update_url: "https://%s:%s@ipv4.tunnelbroker.net/nic/update?hostname=%s"
