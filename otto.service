@@ -1,0 +1,23 @@
+[Unit]
+Description=Otto Prod
+After=ntp.service
+Requires=docker.service
+
+[Service]
+TimeoutSec=0
+Restart=always
+Environment=IMAGE=otto:latest
+StandardOutput=null
+StandardError=null
+
+ExecStartPre=-/usr/bin/docker kill %p
+ExecStartPre=-/usr/bin/docker rm %p
+ExecStart=/usr/bin/docker run \
+    --name=%p \
+    -v /var/lib/otto:/var/lib/otto \
+    $IMAGE
+ExecStop=/usr/bin/docker stop %p
+ExecStopPost=-/usr/bin/docker rm %p
+
+[Install]
+WantedBy=multi-user.target

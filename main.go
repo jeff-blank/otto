@@ -130,7 +130,7 @@ func main() {
 		for {
 			pubIP := getPubIP(config, snmpsess)
 			if pubIP != "N/A" && len(globalRegex["rfc1918"].Find([]byte(pubIP))) == 0 && state.PubIp != pubIP {
-				log.Printf("pub IP now '%s'", pubIP)
+				log.Infof("pub IP now '%s'", pubIP)
 				success := routerPubIPUpdate(config.Router, pubIP, config.SlackWebHook)
 				tunnelBrokerUpdate(config.TunnelBroker, config.SlackWebHook)
 				if success {
