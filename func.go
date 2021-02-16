@@ -46,7 +46,7 @@ func writeState(stateFile string, state State) {
 	}
 }
 
-func ncClient(router RouterConfig) *nc.Session {
+func ncClient(router RouterConfig) (*nc.Session, error) {
 	key, err := ioutil.ReadFile(router.SshKeyFile)
 
 	if err != nil {
@@ -66,9 +66,10 @@ func ncClient(router RouterConfig) *nc.Session {
 
 	sess, err := nc.DialSSH(router.Hostname, sshConfig)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return nil, err
 	}
-	return sess
+	return sess, nil
 }
 
 func tunnelBrokerUpdate(tbConfig TunnelBrokerConfig, slackWebHook string) {
@@ -120,7 +121,10 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 		seg *nrgo.Segment
 	)
 
-	ncSess := ncClient(router)
+	ncSess, err := ncClient(router)
+	if err != nil {
+		return false
+	}
 	defer ncSess.Close()
 
 	if nrApp != nil {

@@ -6,9 +6,9 @@ import (
 	s "strings"
 	"time"
 
+	snmp "github.com/gosnmp/gosnmp"
 	nrgo "github.com/newrelic/go-agent/v3/newrelic"
 	log "github.com/sirupsen/logrus"
-	snmp "github.com/soniah/gosnmp"
 )
 
 func SNMPSess(config Config) *snmp.GoSNMP {
@@ -95,7 +95,8 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 		seg.End()
 	}
 	if pubIfIndex == -1 {
-		printAddLogEnt(fmt.Sprintf("Could not find ifIndex for interface '%s'", config.Router.PubInterface), "Fatal", config.SlackWebHook)
+		printAddLogEnt(fmt.Sprintf("Could not find ifIndex for interface '%s'", config.Router.PubInterface), "Error", config.SlackWebHook)
+		return "N/A"
 	}
 
 	if nrApp != nil {
@@ -107,9 +108,10 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 	}
 	if err != nil {
 		errMsg := fmt.Sprintf("BulkWalkAll ipAdEntIfIndex: %v", err)
-		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Fatal"})
+		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
 		logSlack(config.SlackWebHook)
-		log.Fatal(errMsg)
+		log.Error(errMsg)
+		return "N/A"
 	}
 
 	if nrApp != nil {
