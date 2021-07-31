@@ -28,6 +28,7 @@ FROM alpine:latest
 
 COPY --from=builder /go/src/github.com/jeff-blank/otto/otto /config.yaml /id_ed25519 /
 COPY --from=builder /known_hosts /.ssh/known_hosts
+COPY --from=builder /known_hosts /root/.ssh/known_hosts
 RUN chmod 0600 /id_ed25519
 
-ENTRYPOINT ["/otto", "-conf", "/config.yaml"]
+ENTRYPOINT ["/otto", "-conf", "/config.yaml", "-v"]

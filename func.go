@@ -103,6 +103,7 @@ func jGetConfig(source, filter string) string {
 	if len(filter) > 0 {
 		rstr += fmt.Sprintf("<filter><configuration>%s</configuration></filter>", filter)
 	}
+	log.Debugf(rstr + "</get-config>")
 	return rstr + "</get-config>"
 }
 
@@ -133,12 +134,14 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 
 		seg = nrgo.StartSegment(tx, "Get ip-0/0/0 config")
 	}
-	ifXML, err := ncSess.Exec(nc.RawMethod(jGetConfig("running", "<interfaces><interface>ip-0/0/0</interface></interfaces>")))
+	ifXML, err := ncSess.Exec(nc.RawMethod(jGetConfig("running", "<interfaces><interface><name>ip-0/0/0</name></interface></interfaces>")))
+	log.Debugf(">> %s", ifXML)
 	if nrApp != nil {
 		seg.End()
 	}
 	if err != nil {
-		printAddLogEnt(fmt.Sprintf("NetConf exec(get-config) failed: %v", err), "Fatal", slackWebHook)
+		printAddLogEnt(fmt.Sprintf("NetConf exec(get-config) failed: %v", err), "Error", slackWebHook)
+		return false
 	}
 
 	if nrApp != nil {
