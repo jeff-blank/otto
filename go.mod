@@ -8,7 +8,6 @@ require (
 	github.com/newrelic/go-agent/v3 v3.10.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/ziutek/telnet v0.0.0-20180329124119-c3b780dc415b // indirect
-	golang.org/x/crypto v0.6.0
-	golang.org/x/net v0.7.0 // indirect
+	golang.org/x/crypto v0.17.0
 	gopkg.in/yaml.v2 v2.4.0
 )
