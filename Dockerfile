@@ -1,4 +1,4 @@
-FROM golang:1.18.1 as builder
+FROM golang:1.20.3 as builder
 
 ARG NR_LICENSE_B
 ARG SLACK_WEBHOOK_B
