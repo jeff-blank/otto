@@ -7,7 +7,7 @@ require (
 	github.com/gosnmp/gosnmp v1.29.0
 	github.com/newrelic/go-agent/v3 v3.29.0
 	github.com/sirupsen/logrus v1.7.0
-	golang.org/x/crypto v0.17.0
-	golang.org/x/net v0.19.0 // indirect
+	golang.org/x/crypto v0.30.0
+	golang.org/x/net v0.32.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0
 )
