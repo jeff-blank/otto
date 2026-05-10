@@ -1,7 +1,7 @@
 [Unit]
 Description=Otto Prod
-After=ntp.service
-Requires=docker.service
+After=systemd-timesyncd.service
+Requires=podman.service
 
 [Service]
 TimeoutSec=0
@@ -10,14 +10,14 @@ Environment=IMAGE=otto:latest
 StandardOutput=null
 StandardError=null
 
-ExecStartPre=-/usr/bin/docker kill %p
-ExecStartPre=-/usr/bin/docker rm %p
-ExecStart=/usr/bin/docker run \
+ExecStartPre=-/usr/bin/podman kill %p
+ExecStartPre=-/usr/bin/podman rm %p
+ExecStart=/usr/bin/podman run \
     --name=%p \
     -v /var/lib/otto:/var/lib/otto \
     $IMAGE
-ExecStop=/usr/bin/docker stop %p
-ExecStopPost=-/usr/bin/docker rm %p
+ExecStop=/usr/bin/podman stop %p
+ExecStopPost=-/usr/bin/podman rm %p
 
 [Install]
 WantedBy=multi-user.target

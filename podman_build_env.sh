@@ -6,7 +6,7 @@ if [ -z "$BUILD_ENV" -o ! -f "$BUILD_ENV" ]; then
 fi
 
 . $BUILD_ENV
-docker build \
+podman build \
 	--tag otto:latest \
 	--build-arg NR_LICENSE_B="$NR_LICENSE" \
 	--build-arg ROUTER_SSH_PUBKEY_B="$ROUTER_SSH_PUBKEY" \

@@ -1,4 +1,4 @@
-FROM golang:1.20.3 as builder
+FROM golang:1.26.2 as builder
 
 ARG NR_LICENSE_B
 ARG SLACK_WEBHOOK_B
@@ -18,7 +18,7 @@ ENV NR_LICENSE=$NR_LICENSE_B SLACK_WEBHOOK=$SLACK_WEBHOOK_B ROUTER_HOSTNAME=$ROU
 
 COPY *.go go.* /go/src/github.com/jeff-blank/otto/
 WORKDIR /go/src/github.com/jeff-blank/otto
-RUN GO111MODULE=on CGO_ENABLED=0 GOOS=linux go build .
+RUN CGO_ENABLED=0 GOOS=linux go build .
 
 WORKDIR /
 COPY inject_secrets config.yaml /
