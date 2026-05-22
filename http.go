@@ -6,7 +6,7 @@ import (
 
 func statusCheck(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(200)
-	_, _ = rw.Write([]byte("OK"))
+	rw.Write([]byte("OK"))
 }
 
 func statusInfo(rw http.ResponseWriter, req *http.Request) {
