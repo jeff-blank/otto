@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -10,7 +9,7 @@ import (
 
 func readConfigFile(path string) Config {
 	var config Config
-	yamlText, err := ioutil.ReadFile(path)
+	yamlText, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatalf("Can't read %s: %v", path, err)
 	}

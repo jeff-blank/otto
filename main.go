@@ -11,7 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// constants
 const (
 	IF_DESCR           = ".1.3.6.1.2.1.2.2.1.2"
 	IP_AD_ENT_IF_INDEX = ".1.3.6.1.2.1.4.20.1.2"
@@ -120,11 +119,8 @@ func main() {
 
 	if running(config.PidFile) {
 		log.Fatal("a running instance of this program was detected.")
-	} else {
-		// now that we're actually running (past all the log.Fatal[f]() calls),
-		// time to create a pid file
-		createPidFile(config.PidFile)
 	}
+	createPidFile(config.PidFile)
 
 	go func() {
 		for {

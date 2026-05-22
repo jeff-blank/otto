@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"golang.org/x/crypto/ssh"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"os"
@@ -19,7 +18,7 @@ import (
 
 func getLastState(stateFile string) State {
 	var state State
-	stateJSON, err := ioutil.ReadFile(stateFile)
+	stateJSON, err := os.ReadFile(stateFile)
 	if err != nil {
 		log.Fatalf("Can't open state file %s: %v", stateFile, err)
 	}
@@ -38,7 +37,7 @@ func writeState(stateFile string, state State) {
 		log.Error(errMsg)
 		return
 	}
-	err = ioutil.WriteFile(stateFile, jsonState, 0600)
+	err = os.WriteFile(stateFile, jsonState, 0600)
 	if err != nil {
 		errMsg := fmt.Sprintf("Error writing state to %s: %v", stateFile, err)
 		logBuf = append(logBuf, LogEnt{Message: errMsg, Level: "Error"})
@@ -47,7 +46,7 @@ func writeState(stateFile string, state State) {
 }
 
 func ncClient(router RouterConfig) (*nc.Session, error) {
-	key, err := ioutil.ReadFile(router.SshKeyFile)
+	key, err := os.ReadFile(router.SshKeyFile)
 
 	if err != nil {
 		log.Fatalf("%s: can't open: %v", router.SshKeyFile, err)
@@ -264,7 +263,7 @@ func printAddLogEnt(msg, level, slackWebHook string) {
 }
 
 func running(path string) bool {
-	pidStr, err := ioutil.ReadFile(path)
+	pidStr, err := os.ReadFile(path)
 	if err == nil {
 		// pid file exists; read it
 		captureLeadingDigits, err := re.Compile(`^(\d+)[\n.]*`)
@@ -299,11 +298,10 @@ func running(path string) bool {
 		}
 		return false
 	}
-	return true
 }
 
 func createPidFile(path string) {
-	err := ioutil.WriteFile(path, []byte(fmt.Sprintf("%d\n", os.Getpid())), 0666)
+	err := os.WriteFile(path, []byte(fmt.Sprintf("%d", os.Getpid())), 0666)
 	if err != nil {
 		log.Fatalf("can't create %s: %v", path, err)
 	}
