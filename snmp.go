@@ -54,7 +54,7 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 
 		// we'll do this every poll interval in case the router is a Juniper
 		// and it gets upgraded or is otherwise rebooted
-		seg = nrgo.StartSegment(tx, "BulkWalkAll ifDescr")
+		seg = tx.StartSegment("BulkWalkAll ifDescr")
 	}
 	res, err := sess.BulkWalkAll(IF_DESCR)
 	if nrApp != nil {
@@ -70,7 +70,7 @@ func getPubIP(config Config, sess *snmp.GoSNMP) string {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "find ifIndex of public interface")
+		seg = tx.StartSegment("find ifIndex of public interface")
 	}
 	for _, pdu := range res {
 		if pdu.Type == snmp.OctetString {

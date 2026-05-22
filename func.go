@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"golang.org/x/crypto/ssh"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,6 +13,7 @@ import (
 	nc "github.com/Juniper/go-netconf/netconf"
 	nrgo "github.com/newrelic/go-agent/v3/newrelic"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 func getLastState(stateFile string) State {
@@ -81,7 +81,7 @@ func tunnelBrokerUpdate(tbConfig TunnelBrokerConfig, slackWebHook string) {
 		tx = nrApp.StartTransaction("tunnelBrokerUpdate")
 		defer tx.End()
 
-		seg = nrgo.StartSegment(tx, "HTTP GET to update")
+		seg = tx.StartSegment("HTTP GET to update")
 	}
 	resp, err := http.Get(fmt.Sprintf(tbConfig.UpdateUrl, tbConfig.Username, tbConfig.Password, tbConfig.TunnelId))
 	if nrApp != nil {
@@ -108,7 +108,7 @@ func jGetConfig(source, filter string) string {
 
 func jSetConfig(target, updateXML string) string {
 
-	updateXML = s.Replace(updateXML, "\n", "{NEWLINE}", -1)
+	updateXML = s.ReplaceAll(updateXML, "\n", "{NEWLINE}")
 	updateXML = globalRegex["loadConfigFragment"].ReplaceAllString(updateXML, "<config><configuration>$1</configuration></config>")
 	updateXML = globalRegex["reNewline"].ReplaceAllString(updateXML, "\n")
 
@@ -131,7 +131,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 		tx = nrApp.StartTransaction("routerPubIPUpdate")
 		defer tx.End()
 
-		seg = nrgo.StartSegment(tx, "Get ip-0/0/0 config")
+		seg = tx.StartSegment("Get ip-0/0/0 config")
 	}
 	ifXML, err := ncSess.Exec(nc.RawMethod(jGetConfig("running", "<interfaces><interface><name>ip-0/0/0</name></interface></interfaces>")))
 	log.Debugf(">> %s", ifXML)
@@ -144,7 +144,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Update ip-0/0/0 tunnel source(s)")
+		seg = tx.StartSegment("Update ip-0/0/0 tunnel source(s)")
 	}
 	updateXML := globalRegex["tunnelSource"].ReplaceAllString(ifXML.Data, "${1}"+newIP)
 	if nrApp != nil {
@@ -152,7 +152,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Lock router configuration")
+		seg = tx.StartSegment("Lock router configuration")
 	}
 	_, err = ncSess.Exec(nc.MethodLock("candidate"))
 	if nrApp != nil {
@@ -165,7 +165,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Send ip-0/0/0 config update")
+		seg = tx.StartSegment("Send ip-0/0/0 config update")
 	}
 	_, err = ncSess.Exec(nc.RawMethod(jSetConfig("candidate", updateXML)))
 	if nrApp != nil {
@@ -183,7 +183,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Commit router configuration")
+		seg = tx.StartSegment("Commit router configuration")
 	}
 	_, err = ncSess.Exec(nc.RawMethod("<commit/>"))
 	if nrApp != nil {
@@ -199,7 +199,7 @@ func routerPubIPUpdate(router RouterConfig, newIP, slackWebHook string) bool {
 	}
 
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Unlock router configuration")
+		seg = tx.StartSegment("Unlock router configuration")
 	}
 	_, err = ncSess.Exec(nc.MethodUnlock("candidate"))
 	if nrApp != nil {
@@ -230,7 +230,7 @@ func logSlack(webHookURL string) {
 	slackPayload += "]}"
 	log.Debugf("%#v", slackPayload)
 	if nrApp != nil {
-		seg = nrgo.StartSegment(tx, "Slack HTTP POST")
+		seg = tx.StartSegment("Slack HTTP POST")
 	}
 	// TODO: check the results of the POST
 	resp, _ := http.PostForm(webHookURL, url.Values{"payload": []string{slackPayload}})
@@ -301,7 +301,7 @@ func running(path string) bool {
 }
 
 func createPidFile(path string) {
-	err := os.WriteFile(path, []byte(fmt.Sprintf("%d", os.Getpid())), 0666)
+	err := os.WriteFile(path, fmt.Appendf(nil, "%d", os.Getpid()), 0666)
 	if err != nil {
 		log.Fatalf("can't create %s: %v", path, err)
 	}

@@ -7,8 +7,8 @@ require (
 	github.com/gosnmp/gosnmp v1.43.2
 	github.com/newrelic/go-agent/v3 v3.43.3
 	github.com/sirupsen/logrus v1.9.4
+	go.yaml.in/yaml/v4 v4.0.0-rc.4
 	golang.org/x/crypto v0.51.0
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
